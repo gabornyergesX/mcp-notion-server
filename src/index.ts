@@ -21,6 +21,13 @@ import {
   handleDeleteBlock
 } from "./handlers/index.js";
 
+import {
+  handleGetPage,
+  handleGetDatabase,
+  handleQueryDatabase,
+  handleSearch
+} from "./handlers/notion-handlers.js";
+
 const server = new Server(
   {
     name: "mcp-notion-server",
@@ -139,6 +146,64 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: ["block_id"]
       }
+    },
+    {
+      name: "get_page",
+      description: "Retrieve a page by ID",
+      inputSchema: {
+        type: "object",
+        properties: {
+          page_id: { type: "string", description: "ID of the page to retrieve" }
+        },
+        required: ["page_id"]
+      }
+    },
+    {
+      name: "get_database",
+      description: "Retrieve a database by ID",
+      inputSchema: {
+        type: "object",
+        properties: {
+          database_id: { type: "string", description: "ID of the database to retrieve" }
+        },
+        required: ["database_id"]
+      }
+    },
+    {
+      name: "query_database",
+      description: "Query a database with filters and sorting",
+      inputSchema: {
+        type: "object",
+        properties: {
+          database_id: { type: "string", description: "ID of the database to query" },
+          filter: { type: "object", description: "Filter conditions" },
+          sorts: { type: "array", description: "Sorting parameters" },
+          page_size: { type: "number", description: "Number of results per page" },
+          start_cursor: { type: "string", description: "Pagination cursor" }
+        },
+        required: ["database_id"]
+      }
+    },
+    {
+      name: "search",
+      description: "Search pages and databases",
+      inputSchema: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query" },
+          filter: { 
+            type: "object",
+            description: "Filter by object type (page or database)" 
+          },
+          sort: { 
+            type: "object",
+            description: "Sort by last edited or created time" 
+          },
+          page_size: { type: "number", description: "Number of results per page" },
+          start_cursor: { type: "string", description: "Pagination cursor" }
+        },
+        required: ["query"]
+      }
     }
   ]
 }));
@@ -163,6 +228,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "delete_blocks":
         return handleDeleteBlock((request.params.arguments as any).block_id);
+
+      case "get_page":
+        return handleGetPage(request.params.arguments as any);
+
+      case "get_database":
+        return handleGetDatabase(request.params.arguments as any);
+
+      case "query_database":
+        return handleQueryDatabase(request.params.arguments as any);
+
+      case "search":
+        return handleSearch(request.params.arguments as any);
 
       default:
         throw new Error("Unknown tool");
