@@ -19,6 +19,18 @@ import {
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { Client } from "@notionhq/client";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+if (!process.env.NOTION_API_KEY) {
+  throw new Error("NOTION_API_KEY is required");
+}
+
+const notion = new Client({
+  auth: process.env.NOTION_API_KEY,
+});
 
 /**
  * Type alias for a note object.
@@ -100,21 +112,43 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: "create_note",
-        description: "Create a new note",
+        name: "create_database_item",
+        description: "Create a new item in a Notion database",
         inputSchema: {
           type: "object",
           properties: {
+            database_id: {
+              type: "string",
+              description: "ID of the Notion database"
+            },
+            properties: {
+              type: "object",
+              description: "Properties for the new database item"
+            }
+          },
+          required: ["database_id", "properties"]
+        }
+      },
+      {
+        name: "create_page",
+        description: "Create a new page in Notion",
+        inputSchema: {
+          type: "object",
+          properties: {
+            parent_id: {
+              type: "string",
+              description: "ID of the parent page or database"
+            },
             title: {
               type: "string",
-              description: "Title of the note"
+              description: "Title of the new page"
             },
             content: {
               type: "string",
-              description: "Text content of the note"
+              description: "Content of the page in markdown format"
             }
           },
-          required: ["title", "content"]
+          required: ["parent_id", "title"]
         }
       }
     ]
@@ -127,22 +161,85 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
  */
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   switch (request.params.name) {
-    case "create_note": {
-      const title = String(request.params.arguments?.title);
-      const content = String(request.params.arguments?.content);
-      if (!title || !content) {
-        throw new Error("Title and content are required");
-      }
-
-      const id = String(Object.keys(notes).length + 1);
-      notes[id] = { title, content };
-
-      return {
-        content: [{
-          type: "text",
-          text: `Created note ${id}: ${title}`
-        }]
+    case "create_database_item": {
+      const { database_id, properties } = request.params.arguments as {
+        database_id: string;
+        properties: Record<string, any>;
       };
+
+      try {
+        const response = await notion.pages.create({
+          parent: { database_id },
+          properties
+        });
+
+        return {
+          content: [{
+            type: "text",
+            text: `Created database item: ${response.id}`
+          }]
+        };
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(`Failed to create database item: ${error.message}`);
+        } else {
+          throw new Error("Failed to create database item: An unknown error occurred");
+        }
+      }
+    }
+
+    case "create_page": {
+      const { parent_id, title, content } = request.params.arguments as {
+        parent_id: string;
+        title: string;
+        content?: string;
+      };
+
+      try {
+        const response = await notion.pages.create({
+          parent: { page_id: parent_id },
+          properties: {
+            title: {
+              title: [
+                {
+                  text: {
+                    content: title
+                  }
+                }
+              ]
+            }
+          },
+          children: content ? [
+            {
+              object: "block",
+              type: "paragraph",
+              paragraph: {
+                rich_text: [
+                  {
+                    type: "text",
+                    text: {
+                      content: content
+                    }
+                  }
+                ]
+              }
+            }
+          ] : []
+        });
+
+        return {
+          content: [{
+            type: "text",
+            text: `Created page: ${response.id}`
+          }]
+        };
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(`Failed to create page: ${error.message}`);
+        } else {
+          throw new Error("Failed to create page: An unknown error occurred");
+        }
+      }
     }
 
     default:
