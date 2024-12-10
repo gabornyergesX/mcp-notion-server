@@ -1,4 +1,4 @@
-# mcp-notion-server MCP Server
+# mcp-notion-server
 
 A Model Context Protocol server
 
@@ -11,38 +11,51 @@ This is a TypeScript-based MCP server that implements a simple notes system. It 
 ## Features
 
 ### Resources
-- List and access notes via `note://` URIs
-- Each note has a title, content and metadata
-- Plain text mime type for simple content access
+- Access Notion pages and databases via URIs
+- Plain text mime type for content access
 
 ### Tools
-- `create_note` - Create new text notes
-  - Takes title and content as required parameters
-  - Stores note in server state
+
+#### Database Operations
+- `list_databases` - List all accessible Notion databases
+- `create_database` - Create a new database with custom properties
+
+#### Page Operations
+- `create_page` - Create new pages in databases or as subpages
+  - Support for title, properties, and markdown content
+- `update_page` - Update existing page properties
+
+#### Block Operations
+- `append_blocks` - Add new blocks to a page
+- `delete_blocks` - Remove blocks from a page
 
 ### Prompts
-- `summarize_notes` - Generate a summary of all stored notes
-  - Includes all note contents as embedded resources
-  - Returns structured prompt for LLM summarization
+- `summarize_notes` - Generate summaries of notes
 
-## Development
+## Setup
 
-Install dependencies:
+### Prerequisites
+- Node.js
+- Notion API Key
+
+### Environment Variables
+Create a `.env` file:
 ```bash
-npm install
+NOTION_API_KEY=your_api_key_here
 ```
 
-Build the server:
+### Installation
 ```bash
+npm install
 npm run build
 ```
 
-For development with auto-rebuild:
+### Development
 ```bash
 npm run watch
 ```
 
-## Installation
+## Usage with Claude Desktop
 
 To use with Claude Desktop, add the server config:
 
@@ -58,6 +71,8 @@ On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
   }
 }
 ```
+
+
 
 ### Debugging
 

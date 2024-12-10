@@ -111,44 +111,119 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
+      // Database operations
       {
-        name: "create_database_item",
-        description: "Create a new item in a Notion database",
+        name: "list_databases",
+        description: "List all accessible databases",
         inputSchema: {
           type: "object",
-          properties: {
-            database_id: {
-              type: "string",
-              description: "ID of the Notion database"
-            },
-            properties: {
-              type: "object",
-              description: "Properties for the new database item"
-            }
-          },
-          required: ["database_id", "properties"]
+          properties: {},
+          required: []
         }
       },
       {
-        name: "create_page",
-        description: "Create a new page in Notion",
+        name: "create_database",
+        description: "Create a new database",
         inputSchema: {
           type: "object",
           properties: {
+            parent_id: {
+              type: "string",
+              description: "ID of the parent page"
+            },
+            title: {
+              type: "string",
+              description: "Title of the database"
+            },
+            properties: {
+              type: "object",
+              description: "Database properties schema"
+            }
+          },
+          required: ["parent_id", "title", "properties"]
+        }
+      },
+      // Page operations
+      {
+        name: "create_page",
+        description: "Create a new page",
+        inputSchema: {
+          type: "object",
+          properties: {
+            parent_type: {
+              type: "string",
+              enum: ["database", "page"],
+              description: "Type of parent (database or page)"
+            },
             parent_id: {
               type: "string",
               description: "ID of the parent page or database"
             },
             title: {
               type: "string",
-              description: "Title of the new page"
+              description: "Title of the page"
+            },
+            properties: {
+              type: "object",
+              description: "Page properties (required for database pages)"
             },
             content: {
               type: "string",
-              description: "Content of the page in markdown format"
+              description: "Content in markdown format"
             }
           },
-          required: ["parent_id", "title"]
+          required: ["parent_type", "parent_id"]
+        }
+      },
+      {
+        name: "update_page",
+        description: "Update an existing page",
+        inputSchema: {
+          type: "object",
+          properties: {
+            page_id: {
+              type: "string",
+              description: "ID of the page to update"
+            },
+            properties: {
+              type: "object",
+              description: "Updated page properties"
+            }
+          },
+          required: ["page_id", "properties"]
+        }
+      },
+      // Block operations
+      {
+        name: "append_blocks",
+        description: "Append blocks to a page",
+        inputSchema: {
+          type: "object",
+          properties: {
+            page_id: {
+              type: "string",
+              description: "ID of the page"
+            },
+            blocks: {
+              type: "array",
+              description: "Array of block objects to append"
+            }
+          },
+          required: ["page_id", "blocks"]
+        }
+      },
+      {
+        name: "delete_blocks",
+        description: "Delete blocks from a page",
+        inputSchema: {
+          type: "object",
+          properties: {
+            block_id: {
+              type: "string",
+              description: "ID of the block to delete"
+            }
+          },
+          required: ["block_id"]
         }
       }
     ]
@@ -160,71 +235,72 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
  * Creates a new note with the provided title and content, and returns success message.
  */
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  switch (request.params.name) {
-    case "create_database_item": {
-      const { database_id, properties } = request.params.arguments as {
-        database_id: string;
-        properties: Record<string, any>;
-      };
+  try {
+    switch (request.params.name) {
+      // Database operations
+      case "list_databases": {
+        const response = await notion.search({
+          filter: {
+            property: 'object',
+            value: 'database'
+          }
+        });
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(response.results, null, 2)
+          }]
+        };
+      }
 
-      try {
-        const response = await notion.pages.create({
-          parent: { database_id },
+      case "create_database": {
+        const { parent_id, title, properties } = request.params.arguments as {
+          parent_id: string;
+          title: string;
+          properties: Record<string, any>;
+        };
+
+        const response = await notion.databases.create({
+          parent: { page_id: parent_id },
+          title: [{
+            type: "text",
+            text: { content: title }
+          }],
           properties
         });
 
         return {
           content: [{
             type: "text",
-            text: `Created database item: ${response.id}`
+            text: `Created database: ${response.id}`
           }]
         };
-      } catch (error) {
-        if (error instanceof Error) {
-          throw new Error(`Failed to create database item: ${error.message}`);
-        } else {
-          throw new Error("Failed to create database item: An unknown error occurred");
-        }
       }
-    }
 
-    case "create_page": {
-      const { parent_id, title, content } = request.params.arguments as {
-        parent_id: string;
-        title: string;
-        content?: string;
-      };
+      // Page operations
+      case "create_page": {
+        const { parent_type, parent_id, title, properties, content } = request.params.arguments as {
+          parent_type: "database" | "page";
+          parent_id: string;
+          title?: string;
+          properties?: Record<string, any>;
+          content?: string;
+        };
 
-      try {
+        const parent = parent_type === "database" 
+          ? { database_id: parent_id }
+          : { page_id: parent_id };
+
+        const pageProperties = properties || (title ? {
+          title: {
+            title: [{ text: { content: title } }]
+          }
+        } : {});
+
         const response = await notion.pages.create({
-          parent: { page_id: parent_id },
-          properties: {
-            title: {
-              title: [
-                {
-                  text: {
-                    content: title
-                  }
-                }
-              ]
-            }
-          },
-          children: content ? [
-            {
-              object: "block",
-              type: "paragraph",
-              paragraph: {
-                rich_text: [
-                  {
-                    type: "text",
-                    text: {
-                      content: content
-                    }
-                  }
-                ]
-              }
-            }
-          ] : []
+          parent,
+          properties: pageProperties,
+          children: content ? parseMarkdownToBlocks(content) : []
         });
 
         return {
@@ -233,19 +309,91 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: `Created page: ${response.id}`
           }]
         };
-      } catch (error) {
-        if (error instanceof Error) {
-          throw new Error(`Failed to create page: ${error.message}`);
-        } else {
-          throw new Error("Failed to create page: An unknown error occurred");
-        }
       }
-    }
 
-    default:
-      throw new Error("Unknown tool");
+      case "update_page": {
+        const { page_id, properties } = request.params.arguments as {
+          page_id: string;
+          properties: Record<string, any>;
+        };
+
+        const response = await notion.pages.update({
+          page_id,
+          properties
+        });
+
+        return {
+          content: [{
+            type: "text",
+            text: `Updated page: ${response.id}`
+          }]
+        };
+      }
+
+      // Block operations
+      case "append_blocks": {
+        const { page_id, blocks } = request.params.arguments as {
+          page_id: string;
+          blocks: any[];
+        };
+
+        const response = await notion.blocks.children.append({
+          block_id: page_id,
+          children: blocks
+        });
+
+        return {
+          content: [{
+            type: "text",
+            text: `Appended blocks to page: ${page_id}`
+          }]
+        };
+      }
+
+      case "delete_blocks": {
+        const { block_id } = request.params.arguments as {
+          block_id: string;
+        };
+
+        await notion.blocks.delete({
+          block_id
+        });
+
+        return {
+          content: [{
+            type: "text",
+            text: `Deleted block: ${block_id}`
+          }]
+        };
+      }
+
+      default:
+        throw new Error("Unknown tool");
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Operation failed: ${error.message}`);
+    }
+    throw new Error("Operation failed: An unknown error occurred");
   }
 });
+
+/**
+ * Helper function to parse markdown to Notion blocks
+ */
+function parseMarkdownToBlocks(markdown: string): any[] {
+  // Simple implementation - converts each line to a paragraph block
+  return markdown.split('\n').filter(line => line.trim()).map(line => ({
+    object: 'block',
+    type: 'paragraph',
+    paragraph: {
+      rich_text: [{
+        type: 'text',
+        text: { content: line }
+      }]
+    }
+  }));
+}
 
 /**
  * Handler that lists available prompts.
