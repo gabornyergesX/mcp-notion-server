@@ -12,21 +12,18 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import {
-  notes,
   handleListDatabases,
   handleCreateDatabase,
   handleCreatePage,
   handleUpdatePage,
   handleAppendBlocks,
-  handleDeleteBlock
-} from "./handlers/index.js";
-
-import {
+  handleDeleteBlock,
   handleGetPage,
   handleGetDatabase,
   handleQueryDatabase,
   handleSearch
-} from "./handlers/notion-handlers.js";
+} from "./handlers/index.js";
+
 
 const server = new Server(
   {
@@ -42,32 +39,6 @@ const server = new Server(
   }
 );
 
-server.setRequestHandler(ListResourcesRequestSchema, async () => ({
-  resources: Object.entries(notes).map(([id, note]) => ({
-    uri: `note:///${id}`,
-    mimeType: "text/plain",
-    name: note.title,
-    description: `A text note: ${note.title}`
-  }))
-}));
-
-server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-  const url = new URL(request.params.uri);
-  const id = url.pathname.replace(/^\//, '');
-  const note = notes[id];
-
-  if (!note) {
-    throw new Error(`Note ${id} not found`);
-  }
-
-  return {
-    contents: [{
-      uri: request.params.uri,
-      mimeType: "text/plain",
-      text: note.content
-    }]
-  };
-});
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
@@ -217,6 +188,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "create_database":
         return handleCreateDatabase(request.params.arguments as any);
 
+      case "get_database":
+        return handleGetDatabase(request.params.arguments as any);
+
+      case "query_database":
+        return handleQueryDatabase(request.params.arguments as any);
+
+      case "get_page":
+        return handleGetPage(request.params.arguments as any);
+  
       case "create_page":
         return handleCreatePage(request.params.arguments as any);
 
@@ -228,15 +208,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "delete_blocks":
         return handleDeleteBlock((request.params.arguments as any).block_id);
-
-      case "get_page":
-        return handleGetPage(request.params.arguments as any);
-
-      case "get_database":
-        return handleGetDatabase(request.params.arguments as any);
-
-      case "query_database":
-        return handleQueryDatabase(request.params.arguments as any);
 
       case "search":
         return handleSearch(request.params.arguments as any);
@@ -261,43 +232,7 @@ server.setRequestHandler(ListPromptsRequestSchema, async () => ({
   ]
 }));
 
-server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-  if (request.params.name !== "summarize_notes") {
-    throw new Error("Unknown prompt");
-  }
 
-  const embeddedNotes = Object.entries(notes).map(([id, note]) => ({
-    type: "resource" as const,
-    resource: {
-      uri: `note:///${id}`,
-      mimeType: "text/plain",
-      text: note.content
-    }
-  }));
-
-  return {
-    messages: [
-      {
-        role: "user",
-        content: {
-          type: "text",
-          text: "Please summarize the following notes:"
-        }
-      },
-      ...embeddedNotes.map(note => ({
-        role: "user" as const,
-        content: note
-      })),
-      {
-        role: "user",
-        content: {
-          type: "text",
-          text: "Provide a concise summary of all the notes above."
-        }
-      }
-    ]
-  };
-});
 
 async function main() {
   const transport = new StdioServerTransport();

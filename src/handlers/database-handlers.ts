@@ -1,20 +1,40 @@
 import { notionClient } from "../config/notion.js";
 import type { 
-  GetPageParams, 
+  CreateDatabaseParams,
   GetDatabaseParams,
-  QueryDatabaseParams,
-  SearchParams,
-} from "../types/notion-api.js";
+  QueryDatabaseParams 
+} from "../types/database-types.js";
 
-export async function handleGetPage({ page_id }: GetPageParams) {
-  const response = await notionClient.pages.retrieve({
-    page_id
+export async function handleListDatabases() {
+  const response = await notionClient.search({
+    filter: {
+      property: 'object',
+      value: 'database'
+    }
+  });
+  
+  return {
+    content: [{
+      type: "text",
+      text: JSON.stringify(response.results, null, 2)
+    }]
+  };
+}
+
+export async function handleCreateDatabase({ parent_id, title, properties }: CreateDatabaseParams) {
+  const response = await notionClient.databases.create({
+    parent: { page_id: parent_id },
+    title: [{
+      type: "text",
+      text: { content: title }
+    }],
+    properties
   });
 
   return {
     content: [{
       type: "text",
-      text: JSON.stringify(response, null, 2)
+      text: `Created database: ${response.id}`
     }]
   };
 }
@@ -54,20 +74,3 @@ export async function handleQueryDatabase({
     }]
   };
 }
-
-export async function handleSearch(request: SearchParams) {
-  const response = await notionClient.search({
-    query: request.query,
-    filter: request.filter,
-    sort: request.sort,
-    page_size: request.page_size,
-    start_cursor: request.start_cursor
-  });
-
-  return {
-    content: [{
-      type: "text",
-      text: JSON.stringify(response.results, null, 2)
-    }]
-  };
-} 
