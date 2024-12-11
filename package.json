@@ -1,5 +1,5 @@
 {
-  "name": "mcp-notion-server",
+  "name": "@gabornyerges/mcp-notion-server",
   "version": "0.1.0",
   "description": "A Model Context Protocol server",
   "private": false,
