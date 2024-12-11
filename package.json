@@ -2,7 +2,7 @@
   "name": "mcp-notion-server",
   "version": "0.1.0",
   "description": "A Model Context Protocol server",
-  "private": true,
+  "private": false,
   "type": "module",
   "bin": {
     "mcp-notion-server": "./build/index.js"
