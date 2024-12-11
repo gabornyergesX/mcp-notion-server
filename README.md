@@ -90,7 +90,7 @@ Configuration content:
       "command": "npx",
       "args": [
         "-y",
-        "mcp-notion-server"
+        "@gabornyerges/mcp-notion-server"
       ],
       "env": {
         "NOTION_API_KEY": "your-notion-api-key"
