@@ -86,8 +86,15 @@ Configuration content:
 ```json
 {
   "mcpServers": {
-    "mcp-notion-server": {
-      "command": "/path/to/mcp-notion-server/build/index.js"
+   "mcp-notion-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-notion-server"
+      ],
+      "env": {
+        "NOTION_API_KEY": "your-notion-api-key"
+      }
     }
   }
 }
