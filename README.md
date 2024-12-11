@@ -48,25 +48,26 @@ This TypeScript-based MCP server implements a bridge between Claude and Notion, 
 - Notion API Key and Integration setup
 - Claude Desktop application
 
-### Environment Variables
-Create a `.env` file:
-```bash
-NOTION_API_KEY=your_api_key_here
-NOTION_DATABASE_ID=optional_default_database_id
-```
 
-### Installation
-```bash
-npm install
-npm run build
-```
-
-### Development
-```bash
-npm run watch
-```
 
 ## Integration with Claude Desktop
+
+Create a Notion Integration:
+
+1. [Visit the Notion Your Integrations page.](https://www.notion.so/profile/integrations)
+
+2. Click "New Integration".
+3. Name your integration and select appropriate permissions (e.g., "Read content", "Update content").
+4. Retrieve the Secret Key:
+
+5. Copy the "Internal Integration Token" from your integration.
+This token will be used for authentication.
+
+6. Add the Integration to Your Workspace:
+
+7. Open the page or database you want the integration to access in Notion.
+8. Click the navigation button in the top right corner.
+9. Click "Connect to" button and select your integration.
 
 ### Configuration Setup
 
