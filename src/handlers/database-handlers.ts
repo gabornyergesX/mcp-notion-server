@@ -1,4 +1,3 @@
-import type { MCPResponse } from "@modelcontextprotocol/sdk/types.js";
 import { notionClient } from "../config/notion.js";
 import type { 
   CreateDatabaseParams,
@@ -6,7 +5,7 @@ import type {
   QueryDatabaseParams 
 } from "../types/database-types.js";
 
-export async function handleListDatabases(): Promise<MCPResponse> {
+export async function handleListDatabases() {
   const response = await notionClient.search({
     filter: {
       property: 'object',
@@ -22,7 +21,7 @@ export async function handleListDatabases(): Promise<MCPResponse> {
   };
 }
 
-export async function handleCreateDatabase({ parent_id, title, properties }: CreateDatabaseParams): Promise<MCPResponse> {
+export async function handleCreateDatabase({ parent_id, title, properties }: CreateDatabaseParams) {
   const response = await notionClient.databases.create({
     parent: { page_id: parent_id },
     title: [{
@@ -40,7 +39,7 @@ export async function handleCreateDatabase({ parent_id, title, properties }: Cre
   };
 }
 
-export async function handleGetDatabase({ database_id }: GetDatabaseParams): Promise<MCPResponse> {
+export async function handleGetDatabase({ database_id }: GetDatabaseParams) {
   const response = await notionClient.databases.retrieve({
     database_id
   });
@@ -59,7 +58,7 @@ export async function handleQueryDatabase({
   sorts,
   page_size,
   start_cursor 
-}: QueryDatabaseParams): Promise<MCPResponse> {
+}: QueryDatabaseParams) {
   const response = await notionClient.databases.query({
     database_id,
     filter,
