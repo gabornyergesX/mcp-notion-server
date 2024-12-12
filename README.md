@@ -1,4 +1,4 @@
-# mcp-notion-server
+# [mcp-notion-server](https://github.com/gabornyergesX/mcp-notion-server)
 
 A Model Context Protocol server for Notion integration
 
